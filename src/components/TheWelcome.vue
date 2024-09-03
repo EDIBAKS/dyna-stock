@@ -1,133 +1,143 @@
 <template>
   <div class="relative overflow-x-auto shadow-md sm:rounded-lg w-full">
     <div class="flex flex-col ml-5">
-      <div class="flex items-center">
-        <q-icon name="schedule" size="20px" />
-        <strong class="mr-8">{{ currentTimestamp }}</strong>
-        <div @click="showDialog = true" class="text-gray-600 cursor-pointer mx-auto">
-          <q-icon name="note_add" size="35px" />Add Dispatch
-        </div>
-        <div @click="exportToExcel" class="text-green-600 cursor-pointer mx-auto">
-          <q-img src="../assets/xls-icon-3392.png" width="30px" height="30px" />Export Excel
-        </div>
-        <div @click="exportToPDF" class="text-red-600 cursor-pointer mx-auto">
-          <q-img src="../assets/pdf-remove.png" width="30px" height="30px" />Export PDF
-        </div>
-        <div @click="printReport" class="text-gray-600 cursor-pointer mx-auto">
-          <q-icon name="print" size="35px" />Print
-        </div>
-      </div>
-    </div>
-
-    <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400 m-4">
+  <div class="flex items-center">
+    <q-icon name="schedule" size="20px" />
+   
+    <strong class="mr-8">{{ currentTimestamp }}</strong>
+    
+    <div   @click="showDialog = true" class="text-gray-600 cursor-pointer mx-auto" ><q-icon name="note_add" size="35px"/>Add Dispatch</div>
+      <div @click="exportToExcel" class="text-green-600 cursor-pointer mx-auto" ><q-img src="../assets/xls-icon-3392.png" width="30px" height="30px"/>Export Excel</div>
+      
+      <div @click="exportToPDF" class="text-red-600 cursor-pointer mx-auto" ><q-img src="../assets/pdf-remove.png" width="30px" height="30px"/>Export PDF</div>
+      <div @click="exportToPDF" class="text-gray-600 cursor-pointer mx-auto" ><q-icon name="print" size="35px"/>Print</div>
+  </div>
+ 
+</div>
+    <table class="w-full  text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400 m-4">
       <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
         <tr>
-          <th @click="sortBy('productName')" class="px-6 py-3 cursor-pointer">
-            Product Name
-            <span v-if="sortKey === 'productName'">
-              {{ sortOrder === 'asc' ? '▲' : '▼' }}
-            </span>
+          <th scope="col" class="px-6 py-3">
+            Product name
           </th>
-          <th @click="sortBy('totalQty')" class="px-6 py-3 cursor-pointer">
+          <th scope="col" class="px-6 py-3">
             Total Stock
-            <span v-if="sortKey === 'totalQty'">
-              {{ sortOrder === 'asc' ? '▲' : '▼' }}
-            </span>
           </th>
-          <th v-for="shop in shops" :key="shop.shopCode" scope="col" class="px-6 py-3 cursor-pointer">
+          <th v-for="shop in shops" :key="shop.shopCode" scope="col" class="px-6 py-3">
             {{ shop.shopCode }}
           </th>
         </tr>
       </thead>
       <tbody>
         <tr
-          v-for="product in sortedProducts"
+          v-for="product in products"
           :key="product.productCode"
           class="odd:bg-white odd:dark:bg-gray-900 even:bg-blue-50 even:dark:bg-gray-800 border-b dark:border-gray-700"
         >
-          <td class="px-6 py-4 text-green-600 text-bold">{{ product.productName }}</td>
-          <td class="px-6 py-4 text-black text-bold">{{ product.totalQty }}</td>
+          <td class="px-6 py-4">{{ product.productName }}</td>
+          <td class="px-6 py-4">{{ product.totalQty }}</td>
           <td
             v-for="shop in shops"
             :key="`${product.productCode}-${shop.shopCode}`"
-            class="px-6 py-4 text-black"
+            class="px-6 py-4"
           >
             {{ getDispatchQuantity(product.productCode, shop.shopCode) || 0 }}
           </td>
         </tr>
       </tbody>
     </table>
+    <div class="flex justify-left ml-5 space-x-2 mt-4">
+     
+   
+      
+      <div>
+ <!-- Export Buttons -->
+ <div class="flex justify-end space-x-2 mt-4">
+     
+      
+    </div>
 
-    <!-- Popup Dialog -->
-    <div
-      v-if="showDialog"
-      id="popup-modal"
-      tabindex="-1"
-      class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overflow-x-hidden bg-gray-900 bg-opacity-50 pt-10"
-    >
-      <div class="relative w-full max-w-2xl h-full md:h-auto">
-        <!-- Modal Content -->
-        <div class="relative bg-white bg-opacity-75 backdrop-blur-lg rounded-lg shadow dark:bg-gray-700 dark:bg-opacity-75">
-          <!-- Modal Header -->
-          <div
-            class="flex items-center justify-between p-5 border-b rounded-t dark:border-gray-600"
-          >
-            <h3 class="text-xl font-medium text-gray-900 dark:text-white">Add Dispatch</h3>
-            <button
-              @click="closeDialog"
-              type="button"
-              class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white"
-            >
-              <svg
-                class="w-5 h-5"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 011.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414 1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                  clip-rule="evenodd"
-                ></path>
-              </svg>
-            </button>
-          </div>
-          <!-- Modal Body -->
-          <div class="p-6 space-y-6">
-            <label for="options">Choose a shop:</label>
-            <select
-              v-model="form.selectedShop"
-              class="block w-full p-2 text-gray-900 border border-gray-300 rounded-lg bg-gray-50 text-xs focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-            >
-              <option selected>select a shop</option>
-              <option
-                v-for="shop in shops"
-                :key="shop.shopCode"
-                :value="shop.shopCode"
-              >
-                {{ shop.shopName }}
-              </option>
-            </select>
+      </div>
 
-            <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
-              <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-                <thead class="text-xs text-gray-700 uppercase dark:text-gray-400">
-                  <tr>
-                    <th scope="col" class="px-6 py-3 bg-gray-50 dark:bg-gray-800">
-                      Product name
-                    </th>
-                    <th scope="col" class="px-6 py-3">
-                      Quantity
-                    </th>
-                    <th scope="col" class="px-6 py-3 bg-gray-50 dark:bg-gray-800">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(item, index) in form.items" :key="index" class="border-b border-gray-200 dark:border-gray-700">
-                    <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap bg-gray-50 dark:text-white dark:bg-gray-800">
-                      <select
+      <!-- Popup Dialog -->
+      <div
+        v-if="showDialog"
+        id="popup-modal"
+        tabindex="-1"
+        class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overflow-x-hidden bg-gray-900 bg-opacity-50 pt-10"
+      
+      >
+        <div class="relative w-full max-w-2xl h-full md:h-auto">
+          <!-- Modal Content -->
+          <div class="relative bg-white bg-opacity-75 backdrop-blur-lg rounded-lg shadow dark:bg-gray-700 dark:bg-opacity-75">
+
+            <!-- Modal Header -->
+            <div
+              class="flex items-center justify-between p-5 border-b rounded-t dark:border-gray-600"
+            >
+              <h3 class="text-xl font-medium text-gray-900 dark:text-white">
+                Add  Dispatch
+              </h3>
+              <button
+                @click="closeDialog"
+                type="button"
+                class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white"
+              >
+                <svg
+                  class="w-5 h-5"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 011.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414 1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clip-rule="evenodd"
+                  ></path>
+                </svg>
+              </button>
+            </div>
+            <!-- Modal Body -->
+            <div class="p-6 space-y-6">
+              <label for="options">Choose a shop:</label>
+              <select
+                v-model="form.selectedShop"
+                class="block w-full p-2 text-gray-900 border border-gray-300 rounded-lg bg-gray-50 text-xs focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+              >
+                <option selected>select a shop</option>
+                <option
+                  v-for="shop in shops"
+                  :key="shop.shopCode"
+                  :value="shop.shopCode"
+                >
+                  {{ shop.shopName }}
+                </option>
+              </select>
+
+
+
+
+              <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
+    <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+        <thead class="text-xs text-gray-700 uppercase dark:text-gray-400">
+            <tr>
+                <th scope="col" class="px-6 py-3 bg-gray-50 dark:bg-gray-800">
+                    Product name
+                </th>
+                <th scope="col" class="px-6 py-3">
+                    quantity
+                </th>
+                <th scope="col" class="px-6 py-3 bg-gray-50 dark:bg-gray-800">
+                    actions
+                </th>
+              
+            </tr>
+        </thead>
+        <tbody>
+            <tr v-for="(item, index) in form.items"
+            :key="index" class="border-b border-gray-200 dark:border-gray-700">
+                <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap bg-gray-50 dark:text-white dark:bg-gray-800">
+                  <select
                         v-model="item.productCode"
                         class="block w-15 p-2 text-gray-900 border border-gray-300 rounded-lg bg-gray-50 text-xs focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                       >
@@ -136,23 +146,28 @@
                           v-for="product in products"
                           :key="product.productCode"
                           :value="product.productCode"
+                          
                         >
                           {{ product.productName }}
                         </option>
                       </select>
-                    </th>
-                    <td class="px-6 py-4">
-                      <input
+                </th>
+                <td class="px-6 py-4">
+                  <input
                         type="number"
                         v-model.number="item.quantity"
                         id="small-input"
                         class="block w-20 p-2 text-gray-900 border border-gray-300 rounded-lg bg-gray-50 text-xs focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                        min="1"
-                        step="1"
+                      min="1"
+                      step="1"
+                      
                       />
-                    </td>
-                    <td class="px-6 py-4 bg-gray-50 dark:bg-gray-800">
-                      <div @click="removeItem(index)" class="flex items-center justify-center h-full cursor-pointer">
+                </td>
+                <td class="px-6 py-4 bg-gray-50 dark:bg-gray-800">
+                  <div
+                        @click="removeItem(index)"
+                        class="flex items-center justify-center h-full cursor-pointer"
+                      >
                         <svg
                           class="w-6 h-6 text-red-600 dark:text-white"
                           aria-hidden="true"
@@ -170,37 +185,71 @@
                             d="M5 7h14m-9 3v8m4-8v8M10 3h4a1 1 0 0 1 1 1v3H9V4a1 1 0 0 1 1-1ZM6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z"
                           />
                         </svg>
+                        <span class="font-bold text-red-600">delete</span>
                       </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+                </td>
+               
+            </tr>
+ 
+           
+           
+        </tbody>
+    </table>
+</div>
+
+
+
+
+
+
+            
+              <div @click="addItem" class="cursor-pointer flex">
+                <svg
+                  class="w-6 h-6 text-blue-800 dark:text-white"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm11-4.243a1 1 0 1 0-2 0V11H7.757a1 1 0 1 0 0 2H11v3.243a1 1 0 1 0 2 0V13h3.243a1 1 0 1 0 0-2H13V7.757Z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                <span class="font-bold text-blue-800">Add Item</span>
+              </div>
             </div>
-          </div>
-          <!-- Modal Footer -->
-          <div
-            class="flex items-center justify-end p-6 space-x-2 border-t border-gray-200 rounded-b dark:border-gray-600"
-          >
-            <button
-              @click="closeDialog"
-              type="button"
-              class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600"
+            <!-- Modal Footer -->
+            <div
+              class="flex items-center justify-end p-6 space-x-2 border-t border-gray-200 rounded-b dark:border-gray-600"
             >
-              Cancel
-            </button>
-            <button
-              @click="saveDispatch"
-              type="button"
-              class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-            >
-              Save
-            </button>
+              <button
+                @click="closeDialog"
+                type="button"
+                class="text-gray-500 bg-white border border-gray-200 hover:bg-gray-100 hover:text-gray-900 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                @click="confirmAction"
+                type="button"
+                class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+              >
+                Confirm
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
+  
+
 </template>
+
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
 import { collection, getDocs, addDoc, updateDoc, doc, Timestamp } from 'firebase/firestore';
