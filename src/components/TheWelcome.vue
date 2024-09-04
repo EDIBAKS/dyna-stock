@@ -12,17 +12,31 @@
       <div @click="exportToPDF" class="text-red-600 cursor-pointer mx-auto" ><q-img src="../assets/pdf-remove.png" width="30px" height="30px"/>Export PDF</div>
       <div @click="exportToPDF" class="text-gray-600 cursor-pointer mx-auto" ><q-icon name="print" size="35px"/>Print</div>
   </div>
- 
+    <!-- Search Bar -->
+    <div class="flex justify-between mt-4">
+        <input
+        v-model="searchQuery"
+       @keypress="searchProducts" 
+  type="text"
+  placeholder="Search by product name"
+  class="block w-1/3 p-2 text-gray-900 border border-gray-300 rounded-lg bg-gray-50 text-xs focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+/>
+        
+      </div>
+      
 </div>
     <table class="w-full  text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400 m-4">
       <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
         <tr>
-          <th scope="col" class="px-6 py-3">
+          <th scope="col" class="px- py-3 cursor-pointer" @click="sort('productName')">
             Product name
+            <q-icon color="blue" :name="sortConfig.column === 'productName' ? (sortConfig.direction === 'asc' ? 'arrow_upward' : 'arrow_downward') : ''" size="15px" class="ml-2" />
           </th>
-          <th scope="col" class="px-6 py-3">
+          <th scope="col" class="px-6 py-3 cursor-pointer flex" @click="sort('totalQty')" style="min-width: 220px;">
             Total Stock
+            <q-icon color="blue" :name="sortConfig.column === 'totalQty' ? (sortConfig.direction === 'asc' ? 'arrow_upward' : 'arrow_downward') : ''" size="15px" class="ml-2" />
           </th>
+
           <th v-for="shop in shops" :key="shop.shopCode" scope="col" class="px-6 py-3">
             {{ shop.shopCode }}
           </th>
@@ -30,7 +44,7 @@
       </thead>
       <tbody>
         <tr
-          v-for="product in products"
+          v-for="product in sortedAndFilteredProducts"
           :key="product.productCode"
           class="odd:bg-white odd:dark:bg-gray-900 even:bg-blue-50 even:dark:bg-gray-800 border-b dark:border-gray-700"
         >
@@ -266,7 +280,7 @@ const showDialog = ref(false);
 const validationMessages = ref({});
 const sortKey = ref(''); // Key to sort by
 const sortOrder = ref('asc'); // Sort order: 'asc' or 'desc'
-
+const searchQuery = ref('');
 // Form state
 const form = reactive({
   selectedShop: '',
@@ -282,7 +296,7 @@ const dispatches = ref([]);
 
 // Fetch data on component mount
 onMounted(async () => {
-  eventBus.value = showDialog.value;
+
 
   // Fetch shops data
   const shopsResult = await getDocs(collection(db, 'SHOPS'));
@@ -293,12 +307,15 @@ onMounted(async () => {
   });
 
   // Fetch products data
-  const productsResult = await getDocs(collection(db, 'productStock'));
-  productsResult.forEach((doc) => {
-    let prdt = doc.data();
-    prdt.id = doc.id;
-    products.value.push(prdt);
-  });
+const productsResult = await getDocs(collection(db, 'productStock'));
+products.value = productsResult.docs.map(doc => {
+  let prdt = doc.data();
+  prdt.id = doc.id;
+  return prdt;
+});
+
+// Sort products alphabetically by productName
+products.value.sort((a, b) => a.productName.localeCompare(b.productName));
 
   // Fetch dispatches data
   const dispatchResult = await getDocs(collection(db, 'dispatches'));
@@ -315,6 +332,57 @@ const showCurrentTimestamp = () => {
   const now = new Date();
   currentTimestamp.value = now.toLocaleString(); // Format as 'MM/DD/YYYY, HH:MM:SS AM/PM'
 };
+
+const filteredProducts = computed(() => {
+  return products.value.filter(product =>
+    product.productName.toLowerCase().includes(searchQuery.value.toLowerCase())
+  );
+});
+
+const sortConfig = ref({
+  column: 'productName',
+  direction: 'asc'
+});
+
+
+
+
+
+
+const sortedAndFilteredProducts = computed(() => {
+  // First, filter the products based on the search query
+  const filtered = products.value.filter(product =>
+    product.productName.toLowerCase().includes(searchQuery.value.toLowerCase())
+  );
+
+    // Then, sort the filtered products
+    return filtered.sort((a, b) => {
+    const column = sortConfig.value.column;
+    const direction = sortConfig.value.direction;
+    
+    if (a[column] < b[column]) {
+      return direction === 'asc' ? -1 : 1;
+    }
+    if (a[column] > b[column]) {
+      return direction === 'asc' ? 1 : -1;
+    }
+    return 0;
+  });
+});
+
+
+
+const sort = (column) => {
+  if (sortConfig.value.column === column) {
+    sortConfig.value.direction = sortConfig.value.direction === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortConfig.value.column = column;
+    sortConfig.value.direction = 'asc';
+  }
+};
+
+
+
 
 // Function to get dispatch quantity for a specific product and shop
 const getDispatchQuantity = (productCode, shopCode) => {
@@ -516,21 +584,7 @@ const showToast = (message, color) => {
   }).showToast();
 };
 
-// Computed property for sorted products
-const sortedProducts = computed(() => {
-  if (sortKey.value) {
-    return [...products.value].sort((a, b) => {
-      let comparison = 0;
-      if (a[sortKey.value] > b[sortKey.value]) {
-        comparison = 1;
-      } else if (a[sortKey.value] < b[sortKey.value]) {
-        comparison = -1;
-      }
-      return sortOrder.value === 'asc' ? comparison : -comparison;
-    });
-  }
-  return products.value;
-});
+
 
 // Function to sort the products based on a given key
 const sortBy = (key) => {

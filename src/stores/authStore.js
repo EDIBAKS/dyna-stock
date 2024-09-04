@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref,onMounted,onBeforeUnmount } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
@@ -9,6 +9,7 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref(null);
   const userDetails = ref({});
   const initialized = ref(false);
+  let idleTimeout = null;
 
   const initializeAuth = async () => {
     return new Promise((resolve) => {
@@ -17,10 +18,12 @@ export const useAuthStore = defineStore('auth', () => {
           console.log('User is logged in:', currentUser);
           user.value = currentUser;
           await fetchUserDetails(currentUser.uid);
+          startIdleTimer();  // Start idle timer on user login
         } else {
           console.log('No user is logged in');
           user.value = null;
           userDetails.value = {};
+          clearIdleTimer();  // Clear idle timer on user logout
         }
         initialized.value = true;
         resolve();
@@ -28,18 +31,6 @@ export const useAuthStore = defineStore('auth', () => {
     });
   };
 
-
-  const verifyPassword = async (currentPassword) => {
-    const userCredential = EmailAuthProvider.credential(user.value.email, currentPassword);
-    try {
-      await reauthenticateWithCredential(user.value, userCredential);
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
- 
   const startIdleTimer = () => {
     // Reset any existing timer
     clearIdleTimer();
@@ -49,6 +40,7 @@ export const useAuthStore = defineStore('auth', () => {
       signOutUser();
     }, 600000);
   };
+
   const clearIdleTimer = () => {
     if (idleTimeout) {
       clearTimeout(idleTimeout);
@@ -68,6 +60,7 @@ export const useAuthStore = defineStore('auth', () => {
     document.removeEventListener('mousemove', resetIdleTimer);
     document.removeEventListener('keypress', resetIdleTimer);
   };
+
   onMounted(() => {
     registerActivityListeners();
   });
@@ -76,7 +69,15 @@ export const useAuthStore = defineStore('auth', () => {
     unregisterActivityListeners();
   });
 
-
+  const verifyPassword = async (currentPassword) => {
+    const userCredential = EmailAuthProvider.credential(user.value.email, currentPassword);
+    try {
+      await reauthenticateWithCredential(user.value, userCredential);
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
   const register = async (email, password, additionalDetails) => {
     try {
@@ -87,6 +88,7 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = newUser;
       userDetails.value = userDetailsWithId;
       router.push('/profile');
+      startIdleTimer();  // Start idle timer on successful registration
     } catch (error) {
       console.error('Error registering user:', error);
     }
@@ -98,6 +100,7 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = userCredential.user;
       await fetchUserDetails(user.value.uid);
       router.push('/profile');
+      startIdleTimer();  // Start idle timer on successful sign-in
     } catch (error) {
       console.error('Error signing in:', error);
     }
@@ -109,6 +112,7 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = null;
       userDetails.value = {};
       router.push('/');
+      clearIdleTimer();  // Clear idle timer on sign-out
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -163,5 +167,5 @@ export const useAuthStore = defineStore('auth', () => {
     }
   };
 
-  return { user, userDetails, initialized,auth, initializeAuth, register, signIn, signOutUser, fetchUserDetails, updateUserDetails,  verifyPassword, changePassword };
+  return { user, userDetails, initialized, initializeAuth, register, signIn, signOutUser, fetchUserDetails, updateUserDetails, verifyPassword, changePassword };
 });

@@ -6,6 +6,7 @@ import DispatchLogs from '../components/DispatchLogs.vue'
 import summaryReport from '../components/summaryReport.vue'
 import LoginPage from '../components/LoginPage.vue'
 import { useAuthStore } from '../stores/authStore';
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -55,7 +56,6 @@ const router = createRouter({
   ]
 })
 
-
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore();
 
@@ -67,11 +67,15 @@ router.beforeEach(async (to, from, next) => {
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
   const isAuthenticated = authStore.user;
 
-  if (requiresAuth && !isAuthenticated) {
-    next('/'); // Redirect to home page if not authenticated
+  // If the user is already logged in and tries to access the login page, redirect to /profile
+  if (isAuthenticated && to.path === '/') {
+    next('/profile');
+  } else if (requiresAuth && !isAuthenticated) {
+    next('/'); // Redirect to login page if not authenticated
   } else {
     next(); // Proceed to the route
   }
 });
 
-export default router
+export default router;
+
