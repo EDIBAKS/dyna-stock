@@ -86,7 +86,7 @@
   </table>
             </td>
             <td class="px-6 py-4">
-              <button @click="confirmAndDeleteDispatch(log.id)" class="text-red-600">REMOVE ALL</button>
+              <button @click="deleteEntireDispatch(log.id)" class="text-red-600">REMOVE ALL</button>
             </td>
           </tr>
         </tbody>
