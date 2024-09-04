@@ -7,9 +7,8 @@ import summaryReport from '../components/summaryReport.vue'
 import LoginPage from '../components/LoginPage.vue'
 import { useAuthStore } from '../stores/authStore';
 
-const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
-  routes: [
+
+  const routes=[
     {
       path: '/',
       name: 'login',
@@ -54,7 +53,12 @@ const router = createRouter({
       component: () => import('../views/AboutView.vue')
     }
   ]
-})
+
+  const router = createRouter({
+    history: createWebHistory(),
+    routes,
+  });
+
 
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore();
@@ -63,6 +67,8 @@ router.beforeEach(async (to, from, next) => {
   if (!authStore.initialized) {
     await authStore.initializeAuth();
   }
+
+  
 
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
   const isAuthenticated = authStore.user;

@@ -271,6 +271,7 @@ import { db } from '../firebase';
 import Toastify from 'toastify-js';
 import 'toastify-js/src/toastify.css';
 import * as XLSX from 'xlsx'; // For Excel export
+
 import jsPDF from 'jspdf'; // For PDF export
 import 'jspdf-autotable';
 import { eventBus } from '../eventbus';
@@ -281,6 +282,10 @@ const validationMessages = ref({});
 const sortKey = ref(''); // Key to sort by
 const sortOrder = ref('asc'); // Sort order: 'asc' or 'desc'
 const searchQuery = ref('');
+// Data collections
+const products = ref([]);
+const shops = ref([]);
+const dispatches = ref([]);
 // Form state
 const form = reactive({
   selectedShop: '',
@@ -289,10 +294,7 @@ const form = reactive({
   date: Timestamp.now(),
 });
 
-// Data collections
-const products = ref([]);
-const shops = ref([]);
-const dispatches = ref([]);
+
 
 // Fetch data on component mount
 onMounted(async () => {
@@ -343,6 +345,10 @@ const sortConfig = ref({
   column: 'productName',
   direction: 'asc'
 });
+
+
+
+
 
 
 
@@ -596,65 +602,76 @@ const sortBy = (key) => {
   }
 };
 
-// Export data to Excel
+//Export to Excel function
 const exportToExcel = () => {
-  const timestamp = new Date().toLocaleString();
-  const title = 'Dynapharm Barzza';
-  const address = '221 Bis Av Nelson Mandela,Centre Ville, Brazza';
+  const workbook = XLSX.utils.book_new();
 
-  const data = [];
-  data.push([title]);
-  data.push([address]);
-  data.push([`Report generated at ${timestamp}`]);
-  data.push([]);
-  data.push(['Product Name', 'Total Dispatch', 'Total Sales', 'Closing Stock', 'Stock Value']);
+  // Prepare your table data
+  const tableData = [];
+  tableData.push(['Product Name', 'Total Stock', ...shops.value.map(shop => shop.shopCode)]);
 
-  sortedProducts.value.forEach((product) => {
+  sortedAndFilteredProducts.value.forEach(product => {
     const row = [
       product.productName,
-      product.totalDispatch,
-      product.totalSales,
-      product.balanceStock,
-      product.stockValue,
+      product.totalQty,
+      ...shops.value.map(shop => getDispatchQuantity(product.productCode, shop.shopCode) || 0)
     ];
-    data.push(row);
+    tableData.push(row);
   });
 
-  const worksheet = XLSX.utils.aoa_to_sheet(data);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Report');
-  XLSX.writeFile(workbook, `Report_${timestamp}.xlsx`);
+  const worksheet = XLSX.utils.aoa_to_sheet(tableData);
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+
+  // Create a title row
+  XLSX.utils.sheet_add_aoa(worksheet, [['General Stock Reoprt']], { origin: 'A1' });
+
+  // Add a timestamp
+  const timestamp = `Generated on: ${new Date().toLocaleString()}`;
+  XLSX.utils.sheet_add_aoa(worksheet, [[timestamp]], { origin: -1 });
+
+  XLSX.writeFile(workbook, 'table_data.xlsx');
 };
 
-// Export data to PDF
+// Export to PDF function
+// Export to PDF function
 const exportToPDF = () => {
   const doc = new jsPDF();
-  const timestamp = new Date().toLocaleString();
-  const title = 'Dynapharm Barzza';
-  const address = '221 Bis Av Nelson Mandela,Centre Ville, Brazza';
+  
+  // Define your table columns and data
+  const columns = [
+    { title: 'Product Name', dataKey: 'productName' },
+    { title: 'Total Stock', dataKey: 'totalQty' },
+    ...shops.value.map(shop => ({ title: shop.shopCode, dataKey: shop.shopCode }))
+  ];
 
-  doc.setFontSize(16);
-  doc.text(title, 20, 20);
-  doc.setFontSize(10);
-  doc.text(address, 20, 30);
-  doc.text(`Report generated at ${timestamp}`, 20, 40);
+  const data = sortedAndFilteredProducts.value.map(product => ({
+    productName: product.productName,
+    totalQty: product.totalQty,
+    ...shops.value.reduce((acc, shop) => {
+      acc[shop.shopCode] = getDispatchQuantity(product.productCode, shop.shopCode) || 0;
+      return acc;
+    }, {})
+  }));
 
-  const headers = ['Product Name', 'Total Dispatch', 'Total Sales', 'Closing Stock', 'Stock Value'];
-  const data = sortedProducts.value.map(product => [
-    product.productName,
-    product.totalDispatch,
-    product.totalSales,
-    product.balanceStock,
-    product.stockValue,
-  ]);
+  // Add title
+  doc.text('DynaPharm Congo', 14, 10);
+  doc.text('General Stock Report', 14, 16);
+  // Add timestamp
+  const timestamp = `Generated on: ${new Date().toLocaleString()}`;
+  doc.text(timestamp, 14, 24);
 
+  // Add table
   doc.autoTable({
-    startY: 50,
-    head: [headers],
+    columns,
     body: data,
+    startY: 30,
+    margin: { horizontal: 14 },
+    styles: { fontSize: 10 },
+    headStyles: { fillColor: [22, 160, 133] },
+    theme: 'striped'
   });
 
-  doc.save(`Report_${timestamp}.pdf`);
+  doc.save('table_data.pdf');
 };
 
 </script>
